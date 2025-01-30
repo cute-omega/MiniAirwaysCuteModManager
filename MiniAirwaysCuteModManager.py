@@ -52,7 +52,7 @@ def __static_file(file_path):
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    with open(__resource_path(file_path), "r", encoding="utf-8") as f:
+    with open(__resource_path(file_path), encoding="utf-8") as f:
         return f.read()
 
 
@@ -114,7 +114,7 @@ def deleteMod():
 def path():
     global config, plugin_folder
     config["game folder"] = request.form.get("path")
-    with open(CONFIG_FILENAME, "w") as f:
+    with open(CONFIG_FILENAME, "w", encoding="utf-8") as f:
         json.dump(config, f)
     plugin_folder = os.path.join(config["game folder"], "BepInEx", "plugins")
     return "ok"
@@ -123,9 +123,9 @@ def path():
 def main() -> NoReturn:
     global config, plugin_folder
     if not os.path.exists(CONFIG_FILENAME):
-        with open(CONFIG_FILENAME, "w") as f:
+        with open(CONFIG_FILENAME, "w", encoding="utf-8") as f:
             json.dump(config, f)
-    with open(CONFIG_FILENAME, "r") as f:
+    with open(CONFIG_FILENAME, encoding="utf-8") as f:
         config = json.load(f)
         plugin_folder = os.path.join(config["game folder"], "BepInEx", "plugins")
     os.system("start http://127.0.0.1:5000")
