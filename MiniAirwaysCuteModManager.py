@@ -56,7 +56,7 @@ def __static_file(file_path):
         return f.read()
 
 
-@app.route("/index.css", methods=["GET"])
+@app.route("/index.css")
 def index_css():
     return __static_file("index.css")
 
