@@ -1,37 +1,48 @@
 # update_version.py
 import datetime, os, sys, logging
 
-rc_filename = "version.rc"
+rc_filename = "version.py"
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
 def update_version():
-    rc_content = """#include <winver.h>
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION     {0}, {1}, {2}, {3}
- PRODUCTVERSION  {0}, {1}, {2}, {3}
- FILEOS          VOS_NT_WINDOWS32
- FILETYPE        VFT_APP
-BEGIN
-  BLOCK "StringFileInfo"
-  BEGIN
-    BLOCK "040904b0"
-    BEGIN
-      VALUE "FileDescription",  "迷你空管 Cute Mod 管理器"
-      VALUE "FileVersion",      "{0}.{1}.{2}.{3}"
-      VALUE "ProductName",      "Mini Airways Cute Mod Manager"
-      VALUE "ProductVersion",   "{0}.{1}.{2}.{3}"
-      VALUE "CompanyName",      "Cute Omega"
-      VALUE "LegalCopyright",   "Open Source by GPLv3 © 2025 - {4}"
-    END
-  END
-  BLOCK "VarFileInfo"
-  BEGIN
-    VALUE "Translation", 0x0409, 1200
-  END
-END"""
+    rc_content = """# UTF-8
+#
+# For more details about fixed file info 'ffi' see:
+# https://learn.microsoft.com/en-us/windows/win32/menurc/vs-versioninfo-resource <wrong url>
+
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=({0}, {1}, {2}, {3}),  # 文件版本号
+    prodvers=({0}, {1}, {2}, {3}),  # 产品版本号
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          '040904B0',  # 语言和编码（简体中文-UTF-8）
+          [
+            StringStruct('FileDescription', '迷你空管 Cute Mod 管理器'),  # 文件描述
+            StringStruct('FileVersion', '{0}.{1}.{2}.{3}'),         # 文件版本（字符串）
+            StringStruct('ProductName', 'Mini Airways Cute Mod Manager'),     # 产品名称
+            StringStruct('ProductVersion', '{0}.{1}.{2}.{3}'),      # 产品版本（字符串）
+            StringStruct('CompanyName', 'Cute Omega'),    # 公司名称
+            StringStruct('LegalCopyright', 'Open Source by GPLv3 © 2025 - {4}')  # 版权信息
+          ]
+        )
+      ]
+    ),
+    VarFileInfo([VarStruct('Translation', [0x409, 1200])])  # 英语-UTF16
+  ]
+)"""
 
     if not os.path.isfile(rc_filename):
         major = 0
@@ -41,9 +52,16 @@ END"""
     else:
         # 读取当前版本号
         with open(rc_filename, encoding="utf-8") as f:
-            old_version = f.readlines()[12].strip().split(" ")[-1].strip('"')
+            old_version = (
+                f.readlines()[7]
+                .strip()
+                .replace("filevers=(", "")
+                .replace("),  # 文件版本号", "")
+            )
             logging.debug(f"{old_version=}")
-            major, minor, patch, build = map(int, old_version.split("."))
+            major, minor, patch, build = map(
+                lambda x: int(x.strip()), old_version.split(",")
+            )
 
     # 自动递增构建号（或根据需求自定义规则）
     for i in sys.argv:
