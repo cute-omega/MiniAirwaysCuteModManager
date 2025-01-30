@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷你空管Cute Mod管理器 - Mod管理页面</title>
+    <link ref="stylesheet" href="/index.css">
+</head>
+
+<body>
+    <h2>Mod列表</h2>
+    <button onclick="selectAll()">全选</button>
+    <button onclick="deselectAll()">全不选</button>
+    <button onclick="invertSelection()">反选</button>
+    <label for="sort">排序方式:</label>
+    <select id="sort" onchange="_sortMods()">
+        <option value="name">按名称</option>
+        <option value="status">按状态</option>
+    </select>
+    <br><br>
+    <table id="modsTable">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="checkAll" onclick="checkAllBoxes()"></th>
+                <th>名称</th>
+                <th>状态</th>
+                <th>版本</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="modsBody">
+            <!-- Mod列表将通过JavaScript动态加载 -->
+        </tbody>
+    </table>
+    <br><br>
+    <button onclick="batchOperation('enable')">启用选中</button>
+    <button onclick="batchOperation('disable')">禁用选中</button>
+    <button onclick="batchOperation('toggle')">切换选中状态</button>
+    <button onclick="batchOperation('delete')">删除选中</button>
+    <button onclick="chooseGameFolder()">选择游戏文件夹</button>
+    <p> 依照GPL协议开源 © 2025 CuteOmega - <a href="/contact">联系我们</a> </p>
+    <script>
+        // 假设这是从后端加载的mod列表
+        //{name: "Mod1", status: "enabled", version: "1.0.0"},
+
+        async function fetchMods() {
+            try {
+                const response = await fetch('/mods');
+                if (response.ok) {
+                    mods = await response.json();
+                    _sortMods();
+                } else {
+                    throw new Error(`${response.status} - ${response.statusText}`);
+                }
+            } catch (error) {
+                alert(`加载mod列表时出错：${error}`);
+            }
+        }
+
+        // 页面加载完成后加载mod列表
+        window.onload = fetchMods;
+
+        function _sortMods() {
+            const sortBy = document.getElementById("sort").value;
+            switch (sortBy) {
+                case "name":
+                    mods.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case "status":
+                    mods.sort((a, b) => a.status.localeCompare(b.status));
+                    break;
+                default:
+                    sortBy = "name";
+                    _sortMods();
+                    return;
+            }
+            __loadMods();
+        }
+
+        function __loadMods() {
+            const modsBody = document.getElementById("modsBody");
+            modsBody.innerHTML = ""; // 清空现有内容
+            mods.forEach(mod => {
+                const row = modsBody.insertRow();
+                const checkboxCell = row.insertCell(0);
+                const nameCell = row.insertCell(1);
+                const statusCell = row.insertCell(2);
+                const versionCell = row.insertCell(3);
+                const actionCell = row.insertCell(4);
+
+                checkboxCell.innerHTML = `<input type="checkbox" class="modCheckbox">`;
+                nameCell.textContent = mod.name;
+                statusCell.textContent = mod.status;
+                statusCell.style.color = mod.status === "启用" ? "green" : "red";
+
+                versionCell.textContent = mod.version;
+                actionCell.innerHTML = `<button onclick="enableMod('${mod.name}')">启用</button> <button onclick="disableMod('${mod.name}')">禁用</button> <button onclick="toggleMod('${mod.name}')">切换状态</button> <button onclick="deleteMod('${mod.name}')">删除</button>`;
+            });
+        }
+
+        function selectAll() {
+            document.querySelectorAll(".modCheckbox").forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectAll() {
+            document.querySelectorAll(".modCheckbox").forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function invertSelection() {
+            document.querySelectorAll(".modCheckbox").forEach(checkbox => {
+                checkbox.checked = !checkbox.checked;
+            });
+        }
+
+        //arg为操作参数，对于mod操作而言是modName，对于更新游戏位置而言是gameFolderPath
+        async function __operateMod(arg, operate, onSuccess) {
+            const mod = mods.find(m => m.name === arg);
+            try {
+                const response = await fetch(`/${operate}`, {
+                    method: "POST",
+                    body: JSON.stringify(operate === 'path' ? { path: arg } : mod),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+                if (response.ok) {
+                    onSuccess(mod);
+                    _sortMods();
+                } else {
+                    throw new Error(`${response.status} - ${response.statusText}`);
+                }
+            } catch (error) {
+                const operateLocaleName = { "enable": "启用", "disable": "禁用", "delete": "删除", 'path': '更改游戏路径为' }[operate];
+                alert(`${operateLocaleName}【${arg}】时出错：${error}`);
+            }
+        }
+
+        function enableMod(modName) {
+            __operateMod(modName, "enable", mod => {
+                mod.status = "启用";
+            });
+        }
+
+        function disableMod(modName) {
+            __operateMod(modName, "disable", mod => {
+                mod.status = "禁用";
+            });
+        }
+
+        function toggleMod(modName) {
+            const mod = mods.find(m => m.name === modName);
+            if (mod.status === "启用") {
+                disableMod(modName);
+            } else {
+                enableMod(modName);
+            }
+        }
+
+        function deleteMod(modName) {
+            __operateMod(modName, "delete", mod => {
+                mods.splice(mods.findIndex(mod), 1);
+            })
+        }
+
+        function __checkbox2modName(checkbox) {
+            return checkbox.closest("tr").cells[1].textContent;
+        }
+
+        function batchOperation(action) {
+            const selectedMods = document.querySelectorAll(".modCheckbox:checked");
+            switch (action) {
+                case 'enable':
+                    selectedMods.forEach(checkbox => {
+                        const modName = __checkbox2modName(checkbox);
+                        enableMod(modName);
+                    });
+                    break;
+                case 'disable':
+                    selectedMods.forEach(checkbox => {
+                        const modName = __checkbox2modName(checkbox);
+                        disableMod(modName);
+                    });
+                    break;
+                case 'toggle':
+                    selectedMods.forEach(checkbox => {
+                        const modName = __checkbox2modName(checkbox);
+                        toggleMod(modName);
+                    });
+                    break;
+                case 'delete':
+                    selectedMods.forEach(checkbox => {
+                        const modName = __checkbox2modName(checkbox);
+                        deleteMod(modName);
+                    });
+                    break;
+            }
+            _sortMods();
+        }
+        async function chooseGameFolder() {
+            const gameFolderPath = window.showDirectoryPicker();
+            __operateMod(gameFolderPath, 'path', (mod) => { });
+        }
+    </script>
+</body>
+
+</html>
