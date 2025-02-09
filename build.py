@@ -1,7 +1,7 @@
 # update_version.py
 import datetime, os, sys, logging
 
-rc_filename = "version.py"
+rc_filename = "version.py.txt"
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )

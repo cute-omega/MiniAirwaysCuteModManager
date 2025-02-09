@@ -16,3 +16,4 @@ dist
 *.egg
 clear_git_history.bat
 cute_mod_manager_settings.json
+*.lock

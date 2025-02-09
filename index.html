@@ -9,6 +9,7 @@
 </head>
 
 <body>
+    <p style="color: red;" id="warning">注意：5分钟无操作程序会自动退出！</p>
     <h2>Mod列表</h2>
     <button onclick="selectAll()">全选</button>
     <button onclick="deselectAll()">全不选</button>
@@ -42,7 +43,7 @@
     <p> 依照GPL协议开源 © 2025 CuteOmega - <a href="/contact">联系我们</a> </p>
     <script>
         // 假设这是从后端加载的mod列表
-        //{name: "Mod1", status: "enabled", version: "1.0.0"},
+        //{name: "Mod1", status: "enabled", version: "1.0.0",filename: "mod1.dll"},
 
         async function fetchMods() {
             try {
@@ -121,13 +122,7 @@
         async function __operateMod(arg, operate, onSuccess) {
             const mod = mods.find(m => m.name === arg);
             try {
-                const response = await fetch(`/${operate}`, {
-                    method: "POST",
-                    body: JSON.stringify(operate === 'path' ? { path: arg } : mod),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                });
+                const response = await fetch(operate === 'path' ? `/${operate}?path=${arg}` : `/${operate}?name=${arg}`, { method: "POST" });
                 if (response.ok) {
                     onSuccess(mod);
                     _sortMods();
